@@ -1,0 +1,5 @@
+{
+  "name": "Arabic Text Aligner & Translator",
+  "description": "An application that translates Arabic text to English, displays the original and translated text side-by-side in a table for easy comparison, and allows exporting the result as a PDF.",
+  "requestFramePermissions": []
+}
