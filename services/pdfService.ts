@@ -1,3 +1,4 @@
+
 import {
   AlignmentType,
   Document,
@@ -16,7 +17,6 @@ import saveAs from 'file-saver';
 import type { TranslationPair } from '../types';
 
 // Helper to sanitize filenames.
-// Removes invalid characters, collapses whitespace to single spaces, and trims.
 const sanitizeFilename = (name: string): string => {
   return name.replace(/[^a-z0-9\s-]/gi, '').trim().replace(/\s+/g, ' ').slice(0, 50) || 'translation';
 };
@@ -46,10 +46,25 @@ export const exportToWord = (data: TranslationPair[]): void => {
   
   const englishTitleText = toTitleCase(titlePair.english);
 
+  // Helper to create paragraphs. 
+  // We explicitly set Alignment to RIGHT for Arabic and remove bidirectional: true 
+  // because Word often treats bidi+right as a "Start" alignment that defaults to Left in many viewers.
+  const createParagraphsFromText = (text: string, isRtl: boolean, alignment: AlignmentType) => {
+    const lines = text.split(/\r?\n/);
+    return lines.map(line => new Paragraph({
+      alignment: alignment,   // RIGHT for Arabic
+      children: [new TextRun({
+        text: line.trim(),
+        font: FONT_FAMILY,
+        size: FONT_SIZE_HALF_PT,
+        rtl: isRtl,           // This handles the character order correctly
+      })],
+    }));
+  };
+
   // --- Create Title Paragraphs ---
   const arabicTitle = new Paragraph({
     alignment: AlignmentType.CENTER,
-    bidirectional: true,
     children: [new TextRun({
       text: titlePair.arabic,
       font: FONT_FAMILY,
@@ -75,39 +90,22 @@ export const exportToWord = (data: TranslationPair[]): void => {
 
   // --- Create Body Table ---
   const tableRows = bodyPairs.map(pair => new TableRow({
+    cantSplit: true, 
     children: [
       // Arabic Cell
       new TableCell({
         verticalAlign: VerticalAlign.TOP,
-        children: [new Paragraph({
-          bidirectional: true,
-          children: [new TextRun({
-            text: pair.arabic,
-            font: FONT_FAMILY,
-            size: FONT_SIZE_HALF_PT,
-            rtl: true,
-          })],
-        })],
+        children: createParagraphsFromText(pair.arabic, true, AlignmentType.RIGHT),
       }),
       // English Cell
       new TableCell({
         verticalAlign: VerticalAlign.TOP,
-        children: [new Paragraph({
-          alignment: AlignmentType.LEFT,
-          children: [new TextRun({
-            text: pair.english,
-            font: FONT_FAMILY,
-            size: FONT_SIZE_HALF_PT,
-          })],
-        })],
+        children: createParagraphsFromText(pair.english, false, AlignmentType.LEFT),
       }),
     ],
   }));
 
-  // For landscape orientation, a standard Letter page is 11" x 8.5".
-  // 1 inch = 1440 twips (DXA).
-  // With 0.5-inch margins (720 twips each), usable width is 10 inches = 14400 twips.
-  const tableWidth = 14400;
+  const tableWidth = 14400; // 10 inches in twips
   const columnWidth = tableWidth / 2;
 
   const bodyTable = new Table({
@@ -122,13 +120,11 @@ export const exportToWord = (data: TranslationPair[]): void => {
       properties: {
         page: {
           size: {
-            // Explicitly set page dimensions for landscape for maximum compatibility.
-            // US Letter Landscape: 11" x 8.5"
-            width: 15840,  // 11 inches in twips
-            height: 12240, // 8.5 inches in twips
+            width: 15840,  
+            height: 12240, 
           },
           orientation: PageOrientation.LANDSCAPE,
-          margin: { top: 720, right: 720, bottom: 720, left: 720 }, // 0.5 inch in twips
+          margin: { top: 720, right: 720, bottom: 720, left: 720 },
         },
       },
       children: [

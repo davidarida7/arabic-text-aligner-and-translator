@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+
+import React, { useState, useCallback, useEffect } from 'react';
 import { translateAndAlignText } from './services/geminiService';
 import { exportToWord } from './services/pdfService';
 import type { TranslationPair } from './types';
@@ -12,24 +13,53 @@ const Header: React.FC = () => (
   </header>
 );
 
-const Loader: React.FC<{ message?: string }> = ({ message = "Translating and aligning text..." }) => (
-  <div className="flex flex-col items-center justify-center space-y-3 p-8">
-    <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent border-solid rounded-full animate-spin"></div>
-    <p className="text-slate-600">{message}</p>
-  </div>
-);
+const Loader: React.FC = () => {
+  const [msgIndex, setMsgIndex] = useState(0);
+  const messages = [
+    "Analyzing Arabic text structure...",
+    "Translating with high precision...",
+    "Aligning segments for side-by-side view...",
+    "Polishing the output...",
+    "Almost there..."
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMsgIndex((prev) => (prev + 1) % messages.length);
+    }, 1500);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center justify-center space-y-4 p-8 animate-in fade-in duration-500">
+      <div className="relative">
+        <div className="w-16 h-16 border-4 border-blue-100 border-solid rounded-full"></div>
+        <div className="absolute top-0 left-0 w-16 h-16 border-4 border-blue-600 border-t-transparent border-solid rounded-full animate-spin"></div>
+      </div>
+      <p className="text-slate-600 font-medium transition-all duration-300">{messages[msgIndex]}</p>
+    </div>
+  );
+};
 
 interface TranslationTableProps {
   data: TranslationPair[];
 }
 const TranslationTable: React.FC<TranslationTableProps> = ({ data }) => (
-  <div className="w-full max-w-4xl mx-auto overflow-hidden rounded-lg shadow-lg border border-slate-200">
+  <div className="w-full max-w-4xl mx-auto overflow-hidden rounded-lg shadow-lg border border-slate-200 animate-in slide-in-from-bottom-4 duration-700">
     <table className="min-w-full bg-white">
       <tbody className="text-slate-700">
         {data.map((pair, index) => (
-          <tr key={index} className="border-b border-slate-200 hover:bg-slate-50">
-            <td className="py-3 px-6 text-right align-top font-serif" dir="rtl" lang="ar">{pair.arabic}</td>
-            <td className="py-3 px-6 text-left align-top">{pair.english}</td>
+          <tr key={index} className="border-b border-slate-200 hover:bg-slate-50 transition-colors duration-150">
+            <td 
+              className="py-4 px-6 text-right align-top font-serif whitespace-pre-wrap text-lg leading-relaxed" 
+              dir="rtl" 
+              lang="ar"
+            >
+              {pair.arabic}
+            </td>
+            <td className="py-4 px-6 text-left align-top whitespace-pre-wrap text-lg leading-relaxed">
+              {pair.english}
+            </td>
           </tr>
         ))}
       </tbody>
@@ -77,8 +107,7 @@ const App: React.FC = () => {
     } catch (err) {
        setError(err instanceof Error ? err.message : "An unknown error occurred during export.");
     } finally {
-      // The generation is fast, but a timeout provides better UX feedback
-      setTimeout(() => setIsExporting(false), 500);
+      setTimeout(() => setIsExporting(false), 800);
     }
   };
 
@@ -86,30 +115,37 @@ const App: React.FC = () => {
   const tableData = translationPairs.length > 1 ? translationPairs.slice(1) : [];
 
   return (
-    <div className="min-h-screen bg-slate-100 font-sans flex flex-col items-center">
+    <div className="min-h-screen bg-slate-50 font-sans flex flex-col items-center">
       <Header />
       <main className="w-full flex-grow p-4 md:p-8 flex flex-col items-center">
-        <div className="w-full max-w-4xl bg-white p-6 rounded-lg shadow-md mb-8">
-          <h2 className="text-xl font-semibold text-slate-800 mb-4">Enter Arabic Text</h2>
+        <div className="w-full max-w-4xl bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8 transition-all hover:shadow-md">
+          <h2 className="text-xl font-semibold text-slate-800 mb-4">Source Arabic Text</h2>
           <textarea
             value={arabicText}
             onChange={(e) => setArabicText(e.target.value)}
-            placeholder="...اكتب النص العربي هنا"
+            placeholder="...أدخل النص العربي هنا (Enter Arabic text here...)"
             dir="rtl"
             lang="ar"
-            className="w-full h-48 p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 text-right font-serif resize-y"
+            className="w-full h-48 p-4 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-right font-serif text-lg resize-y outline-none"
             disabled={isLoading}
           />
-          <div className="flex flex-col sm:flex-row justify-end items-center mt-4">
+          <div className="flex justify-end mt-4">
             <button
               onClick={handleTranslate}
               disabled={isLoading || !arabicText.trim()}
-              className="w-full sm:w-auto px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center"
+              className="px-8 py-3 bg-blue-600 text-white font-bold rounded-lg shadow hover:bg-blue-700 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-300 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M7 2a1 1 0 011-1h3.414a1 1 0 01.707.293l2.828 2.828a1 1 0 01.293.707V9a1 1 0 01-1 1h-1v1a1 1 0 102 0V9a3 3 0 00-3-3H8a3 3 0 00-3 3v1.586A3.001 3.001 0 005 15v1.5a1.5 1.5 0 002.321 1.28l.179-.089a4.95 4.95 0 00-.814-1.29V15a1 1 0 112 0v.01a4.978 4.978 0 002.049 2.503l.3.15a1.5 1.5 0 001.33-2.593l-.15-.3a4.978 4.978 0 00-2.503-2.049V13a1 1 0 112 0v.023c.961.189 1.832.615 2.56 1.242l.3.26a1.5 1.5 0 002.21-2.07l-.26-.3a6.953 6.953 0 00-3.48-1.725V9a1 1 0 10-2 0v1a1 1 0 11-2 0V9a1 1 0 011-1h1V3H8a1 1 0 01-1-1z" />
-              </svg>
-              Translate
+              {isLoading ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </span>
+              ) : (
+                'Translate & Align'
+              )}
             </button>
           </div>
         </div>
@@ -117,8 +153,8 @@ const App: React.FC = () => {
         {isLoading && <Loader />}
         
         {error && (
-          <div className="w-full max-w-4xl bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg my-4" role="alert">
-            <strong className="font-bold">Error: </strong>
+          <div className="w-full max-w-4xl bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg my-4 animate-in fade-in" role="alert">
+            <strong className="font-bold">Notice: </strong>
             <span className="block sm:inline">{error}</span>
           </div>
         )}
@@ -126,30 +162,51 @@ const App: React.FC = () => {
         {translationPairs.length > 0 && !isLoading && (
           <div className="w-full flex-grow flex flex-col items-center">
             {titlePair && (
-              <div className="text-center mb-6 max-w-4xl px-4">
-                <h2 className="text-3xl font-bold text-slate-800" dir="rtl" lang="ar">{titlePair.arabic}</h2>
-                <p className="text-2xl text-slate-600 mt-2">{titlePair.english}</p>
+              <div className="text-center mb-8 max-w-4xl px-4 animate-in fade-in slide-in-from-top-2 duration-500">
+                <h2 className="text-3xl font-bold text-slate-800 whitespace-pre-wrap mb-3 leading-tight" dir="rtl" lang="ar">
+                  {titlePair.arabic}
+                </h2>
+                <div className="w-24 h-1 bg-blue-500 mx-auto mb-4 rounded-full"></div>
+                <p className="text-2xl text-slate-600 whitespace-pre-wrap italic">
+                  {titlePair.english}
+                </p>
               </div>
             )}
             
             {tableData.length > 0 && <TranslationTable data={tableData} />}
             
-            <div className="w-full max-w-4xl flex flex-col items-center justify-center mt-6 p-4 bg-white rounded-lg shadow-md">
-              <h3 className="text-lg font-semibold text-slate-800 mb-3">Export Document</h3>
+            <div className="w-full max-w-4xl flex flex-col items-center justify-center mt-10 p-8 bg-white rounded-xl shadow-sm border border-slate-200 mb-12 animate-in fade-in delay-300">
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Ready to save?</h3>
+              <p className="text-slate-500 mb-6">Download a professionally formatted side-by-side Microsoft Word document.</p>
               <button
                 onClick={handleExport}
                 disabled={isExporting}
-                className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center"
+                className="px-10 py-4 bg-green-600 text-white font-bold rounded-xl shadow-lg hover:bg-green-700 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-slate-300 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-                {isExporting ? 'Generating...' : 'Export to Word (.docx)'}
+                {isExporting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Creating Document...
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Export to Word (.docx)
+                  </>
+                )}
               </button>
             </div>
           </div>
         )}
       </main>
+      <footer className="w-full p-6 text-center text-slate-400 text-sm">
+        &copy; {new Date().getFullYear()} Arabic Aligner & Translator
+      </footer>
     </div>
   );
 };

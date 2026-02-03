@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { TranslationPair } from '../types';
 
@@ -32,8 +33,13 @@ export const translateAndAlignText = async (text: string): Promise<TranslationPa
     Treat any block of text separated by one or more empty lines as a distinct paragraph or segment.
     The first segment should represent the title or the very first line of the source text.
     For each segment you identify, create a corresponding translation.
-    If the text appears to be from a religious text like the Bible, please ensure the English translation aligns with a well-known version like the New King James Version (NKJV) where appropriate.
-    The final output must be a valid JSON array of objects, where each object represents a pair of corresponding segments (the original Arabic segment and its English translation).
+    
+    CRITICAL FORMATTING RULE: If a segment (a row) contains internal single line breaks that are NOT empty lines, you MUST preserve these line breaks by using the newline character (\\n) in your JSON string output for both 'arabic' and 'english' fields.
+    
+    BIBLE REFERENCE RULE: If the text contains Bible references or is from the Bible, ensure the English translation aligns with a well-known version like the New King James Version (NKJV). 
+    MANDATORY: You must use the full, unabbreviated name of every Bible book in every reference (e.g., '1 Corinthians' instead of '1 Cor.', 'Philippians' instead of 'Phil.', 'John' instead of 'Jn.', 'Psalms' instead of 'Ps.'). This is a strict requirement.
+    
+    The final output must be a valid JSON array of objects.
     
     Here is the Arabic text:
     ---
@@ -43,11 +49,12 @@ export const translateAndAlignText = async (text: string): Promise<TranslationPa
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: translationSchema,
+        thinkingConfig: { thinkingBudget: 0 } 
       },
     });
 
