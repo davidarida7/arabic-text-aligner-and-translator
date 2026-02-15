@@ -46,18 +46,18 @@ interface TranslationTableProps {
 }
 const TranslationTable: React.FC<TranslationTableProps> = ({ data }) => (
   <div className="w-full max-w-4xl mx-auto overflow-hidden rounded-lg shadow-lg border border-slate-200 animate-in slide-in-from-bottom-4 duration-700">
-    <table className="min-w-full bg-white">
+    <table className="min-w-full bg-white table-fixed">
       <tbody className="text-slate-700">
         {data.map((pair, index) => (
           <tr key={index} className="border-b border-slate-200 hover:bg-slate-50 transition-colors duration-150">
             <td 
-              className="py-4 px-6 text-right align-top font-serif whitespace-pre-wrap text-lg leading-relaxed" 
+              className="w-[40%] py-4 px-6 text-right align-top font-serif whitespace-pre-wrap text-lg leading-relaxed" 
               dir="rtl" 
               lang="ar"
             >
               {pair.arabic}
             </td>
-            <td className="py-4 px-6 text-left align-top whitespace-pre-wrap text-lg leading-relaxed">
+            <td className="w-[60%] py-4 px-6 text-left align-top whitespace-pre-wrap text-lg leading-relaxed">
               {pair.english}
             </td>
           </tr>

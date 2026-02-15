@@ -47,8 +47,6 @@ export const exportToWord = (data: TranslationPair[]): void => {
   const englishTitleText = toTitleCase(titlePair.english);
 
   // Helper to create paragraphs. 
-  // We explicitly set Alignment to RIGHT for Arabic and remove bidirectional: true 
-  // because Word often treats bidi+right as a "Start" alignment that defaults to Left in many viewers.
   const createParagraphsFromText = (text: string, isRtl: boolean, alignment: AlignmentType) => {
     const lines = text.split(/\r?\n/);
     return lines.map(line => new Paragraph({
@@ -92,12 +90,12 @@ export const exportToWord = (data: TranslationPair[]): void => {
   const tableRows = bodyPairs.map(pair => new TableRow({
     cantSplit: true, 
     children: [
-      // Arabic Cell
+      // Arabic Cell (40%)
       new TableCell({
         verticalAlign: VerticalAlign.TOP,
         children: createParagraphsFromText(pair.arabic, true, AlignmentType.RIGHT),
       }),
-      // English Cell
+      // English Cell (60%)
       new TableCell({
         verticalAlign: VerticalAlign.TOP,
         children: createParagraphsFromText(pair.english, false, AlignmentType.LEFT),
@@ -105,13 +103,18 @@ export const exportToWord = (data: TranslationPair[]): void => {
     ],
   }));
 
-  const tableWidth = 14400; // 10 inches in twips
-  const columnWidth = tableWidth / 2;
+  // Total available width for table = Page Width - Margins
+  // Page Width: 11 inches * 1440 twips = 15840 twips
+  // Margins: 0.5 inches * 1440 * 2 = 1440 twips
+  // Available: 15840 - 1440 = 14400 twips
+  const tableWidth = 14400; 
+  const arabicColWidth = tableWidth * 0.4;
+  const englishColWidth = tableWidth * 0.6;
 
   const bodyTable = new Table({
     rows: tableRows,
     width: { size: tableWidth, type: WidthType.DXA },
-    columnWidths: [columnWidth, columnWidth],
+    columnWidths: [arabicColWidth, englishColWidth],
   });
 
   // --- Assemble Document ---
@@ -120,11 +123,11 @@ export const exportToWord = (data: TranslationPair[]): void => {
       properties: {
         page: {
           size: {
-            width: 15840,  
-            height: 12240, 
+            width: 15840,  // 11 inches
+            height: 12240, // 8.5 inches
           },
           orientation: PageOrientation.LANDSCAPE,
-          margin: { top: 720, right: 720, bottom: 720, left: 720 },
+          margin: { top: 720, right: 720, bottom: 720, left: 720 }, // 0.5 inch margins
         },
       },
       children: [
