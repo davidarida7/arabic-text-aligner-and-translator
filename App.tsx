@@ -9,7 +9,7 @@ import type { TranslationPair } from './types';
 const Header: React.FC = () => (
   <header className="w-full bg-slate-800 text-white p-4 text-center shadow-md">
     <h1 className="text-2xl font-bold">Arabic Text Aligner & Translator</h1>
-    <p className="text-sm text-slate-300">Translate, Align, and Export to Word</p>
+    <p className="text-sm text-slate-300">Translate, Transliterate, Align, and Export to Word</p>
   </header>
 );
 
@@ -18,7 +18,8 @@ const Loader: React.FC = () => {
   const messages = [
     "Analyzing Arabic text structure...",
     "Translating with high precision...",
-    "Aligning segments for side-by-side view...",
+    "Transliterating English into Arabic script...",
+    "Aligning 3-column side-by-side view...",
     "Polishing the output...",
     "Almost there..."
   ];
@@ -45,19 +46,33 @@ interface TranslationTableProps {
   data: TranslationPair[];
 }
 const TranslationTable: React.FC<TranslationTableProps> = ({ data }) => (
-  <div className="w-full max-w-4xl mx-auto overflow-hidden rounded-lg shadow-lg border border-slate-200 animate-in slide-in-from-bottom-4 duration-700">
+  <div className="w-full max-w-6xl mx-auto overflow-hidden rounded-lg shadow-lg border border-slate-200 animate-in slide-in-from-bottom-4 duration-700">
     <table className="min-w-full bg-white table-fixed">
-      <tbody className="text-slate-700">
+      <thead>
+        <tr className="bg-slate-100 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-600">
+          <th className="w-[30%] py-3 px-6 text-right">Arabic Original</th>
+          <th className="w-[35%] py-3 px-6 text-right">English (Transliterated to Arabic)</th>
+          <th className="w-[35%] py-3 px-6 text-left">English Translation</th>
+        </tr>
+      </thead>
+      <tbody className="text-slate-700 divide-y divide-slate-200">
         {data.map((pair, index) => (
-          <tr key={index} className="border-b border-slate-200 hover:bg-slate-50 transition-colors duration-150">
+          <tr key={index} className="hover:bg-slate-50 transition-colors duration-150">
             <td 
-              className="w-[40%] py-4 px-6 text-right align-top font-serif whitespace-pre-wrap text-lg leading-relaxed" 
+              className="w-[30%] py-4 px-6 text-right align-top font-serif whitespace-pre-wrap text-lg leading-relaxed text-slate-900" 
               dir="rtl" 
               lang="ar"
             >
               {pair.arabic}
             </td>
-            <td className="w-[60%] py-4 px-6 text-left align-top whitespace-pre-wrap text-lg leading-relaxed">
+            <td 
+              className="w-[35%] py-4 px-6 text-right align-top font-serif whitespace-pre-wrap text-lg leading-relaxed text-slate-700 bg-slate-50/60" 
+              dir="rtl" 
+              lang="ar"
+            >
+              {pair.transliteration}
+            </td>
+            <td className="w-[35%] py-4 px-6 text-left align-top whitespace-pre-wrap text-lg leading-relaxed text-slate-800">
               {pair.english}
             </td>
           </tr>
@@ -162,14 +177,22 @@ const App: React.FC = () => {
         {translationPairs.length > 0 && !isLoading && (
           <div className="w-full flex-grow flex flex-col items-center">
             {titlePair && (
-              <div className="text-center mb-8 max-w-4xl px-4 animate-in fade-in slide-in-from-top-2 duration-500">
-                <h2 className="text-3xl font-bold text-slate-800 whitespace-pre-wrap mb-3 leading-tight" dir="rtl" lang="ar">
+              <div className="text-center mb-8 max-w-4xl px-4 animate-in fade-in slide-in-from-top-2 duration-500 space-y-4">
+                <h2 className="text-3xl font-bold text-slate-900 whitespace-pre-wrap leading-tight underline decoration-slate-400 decoration-2 underline-offset-8 font-serif" dir="rtl" lang="ar">
                   {titlePair.arabic}
                 </h2>
-                <div className="w-24 h-1 bg-blue-500 mx-auto mb-4 rounded-full"></div>
-                <p className="text-2xl text-slate-600 whitespace-pre-wrap italic">
+                {titlePair.transliteration && (
+                  <>
+                    <div className="w-24 h-1 bg-blue-500 mx-auto !my-5 rounded-full"></div>
+                    <h2 className="text-3xl font-bold text-slate-900 whitespace-pre-wrap leading-tight underline decoration-slate-400 decoration-2 underline-offset-8 font-serif" dir="rtl" lang="ar">
+                      {titlePair.transliteration}
+                    </h2>
+                  </>
+                )}
+                <div className="w-24 h-1 bg-blue-500 mx-auto !my-5 rounded-full"></div>
+                <h2 className="text-3xl font-bold text-slate-900 whitespace-pre-wrap leading-tight underline decoration-slate-400 decoration-2 underline-offset-8">
                   {titlePair.english}
-                </p>
+                </h2>
               </div>
             )}
             
@@ -177,7 +200,7 @@ const App: React.FC = () => {
             
             <div className="w-full max-w-4xl flex flex-col items-center justify-center mt-10 p-8 bg-white rounded-xl shadow-sm border border-slate-200 mb-12 animate-in fade-in delay-300">
               <h3 className="text-xl font-bold text-slate-800 mb-2">Ready to save?</h3>
-              <p className="text-slate-500 mb-6">Download a professionally formatted side-by-side Microsoft Word document.</p>
+              <p className="text-slate-500 mb-6">Download a professionally formatted 3-column Microsoft Word document.</p>
               <button
                 onClick={handleExport}
                 disabled={isExporting}

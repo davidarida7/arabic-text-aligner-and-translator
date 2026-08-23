@@ -73,6 +73,18 @@ export const exportToWord = (data: TranslationPair[]): void => {
     })],
   });
 
+  const transliteratedTitle = titlePair.transliteration ? new Paragraph({
+    alignment: AlignmentType.CENTER,
+    children: [new TextRun({
+      text: titlePair.transliteration,
+      font: FONT_FAMILY,
+      size: FONT_SIZE_HALF_PT,
+      bold: true,
+      underline: { type: UnderlineType.SINGLE },
+      rtl: true,
+    })],
+  }) : null;
+
   const englishTitle = new Paragraph({
     alignment: AlignmentType.CENTER,
     children: [new TextRun({
@@ -86,35 +98,53 @@ export const exportToWord = (data: TranslationPair[]): void => {
 
   const spacer = new Paragraph({ text: '' });
 
-  // --- Create Body Table ---
+  // --- Create Body Table with 3 Columns ---
+  // Table Width: 14400 twips (11 inches landscape minus 1 inch total margins)
+  // Arabic (30% = 4320 twips)
+  // Transliteration in Arabic script (35% = 5040 twips)
+  // English (35% = 5040 twips)
+  const tableWidth = 14400; 
+  const arabicColWidth = 4320;
+  const transliterationColWidth = 5040;
+  const englishColWidth = 5040;
+
+  // Generous padding between column borders and text (in twips: 240 twips = 12pt)
+  const cellMargins = {
+    top: 160,
+    bottom: 160,
+    left: 240,
+    right: 240,
+  };
+
   const tableRows = bodyPairs.map(pair => new TableRow({
     cantSplit: true, 
     children: [
-      // Arabic Cell (40%)
+      // Arabic Original Cell
       new TableCell({
         verticalAlign: VerticalAlign.TOP,
+        margins: cellMargins,
         children: createParagraphsFromText(pair.arabic, true, AlignmentType.RIGHT),
       }),
-      // English Cell (60%)
+      // Transliterated English Cell (in Arabic script)
       new TableCell({
         verticalAlign: VerticalAlign.TOP,
+        margins: cellMargins,
+        children: createParagraphsFromText(pair.transliteration || '', true, AlignmentType.RIGHT),
+      }),
+      // English Translation Cell
+      new TableCell({
+        verticalAlign: VerticalAlign.TOP,
+        margins: cellMargins,
         children: createParagraphsFromText(pair.english, false, AlignmentType.LEFT),
       }),
     ],
   }));
 
-  // Total available width for table = Page Width - Margins
-  // Page Width: 11 inches * 1440 twips = 15840 twips
-  // Margins: 0.5 inches * 1440 * 2 = 1440 twips
-  // Available: 15840 - 1440 = 14400 twips
-  const tableWidth = 14400; 
-  const arabicColWidth = tableWidth * 0.4;
-  const englishColWidth = tableWidth * 0.6;
-
   const bodyTable = new Table({
     rows: tableRows,
     width: { size: tableWidth, type: WidthType.DXA },
-    columnWidths: [arabicColWidth, englishColWidth],
+    columnWidths: [arabicColWidth, transliterationColWidth, englishColWidth],
+    margins: cellMargins,
   });
 
   // --- Assemble Document ---
@@ -132,6 +162,7 @@ export const exportToWord = (data: TranslationPair[]): void => {
       },
       children: [
         arabicTitle,
+        ...(transliteratedTitle ? [transliteratedTitle] : []),
         englishTitle,
         spacer,
         ...(bodyPairs.length > 0 ? [bodyTable] : []),
@@ -142,7 +173,7 @@ export const exportToWord = (data: TranslationPair[]): void => {
   // --- Generate and Download ---
   Packer.toBlob(doc).then(blob => {
     const baseFilename = sanitizeFilename(englishTitleText);
-    const filename = `${baseFilename} (Arabic + English).docx`;
+    const filename = `${baseFilename} (Arabic + Transliteration + English).docx`;
     saveAs(blob, filename);
   }).catch(error => {
     console.error("Error generating Word document:", error);

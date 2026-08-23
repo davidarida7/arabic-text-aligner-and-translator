@@ -1,5 +1,8 @@
 {
   "name": "Arabic Text Aligner & Translator",
-  "description": "An application that translates Arabic text to English, displays the original and translated text side-by-side in a table for easy comparison, and allows exporting the result as a PDF.",
-  "requestFramePermissions": []
+  "description": "An application that translates Arabic text to English, provides a phonetic transliteration of the English translation into Arabic script, displays them side-by-side in a 3-column aligned table, and exports the result to Microsoft Word.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
