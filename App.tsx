@@ -72,7 +72,11 @@ const TranslationTable: React.FC<TranslationTableProps> = ({ data }) => (
             >
               {pair.transliteration}
             </td>
-            <td className="w-[35%] py-4 px-6 text-left align-top whitespace-pre-wrap text-lg leading-relaxed text-slate-800">
+            <td 
+              className="w-[35%] py-4 px-6 text-left align-top whitespace-pre-wrap text-lg leading-relaxed text-slate-800"
+              dir="ltr"
+              lang="en"
+            >
               {pair.english}
             </td>
           </tr>
@@ -190,7 +194,7 @@ const App: React.FC = () => {
                   </>
                 )}
                 <div className="w-24 h-1 bg-blue-500 mx-auto !my-5 rounded-full"></div>
-                <h2 className="text-3xl font-bold text-slate-900 whitespace-pre-wrap leading-tight underline decoration-slate-400 decoration-2 underline-offset-8">
+                <h2 className="text-3xl font-bold text-slate-900 whitespace-pre-wrap leading-tight underline decoration-slate-400 decoration-2 underline-offset-8" dir="ltr" lang="en">
                   {titlePair.english}
                 </h2>
               </div>

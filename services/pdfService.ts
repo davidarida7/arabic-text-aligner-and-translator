@@ -15,27 +15,35 @@ import {
 } from 'docx';
 import saveAs from 'file-saver';
 import type { TranslationPair } from '../types';
+import { ensureVerseQuotesAndAlignment } from './geminiService';
 
 // Helper to sanitize filenames.
 const sanitizeFilename = (name: string): string => {
   return name.replace(/[^a-z0-9\s-]/gi, '').trim().replace(/\s+/g, ' ').slice(0, 50) || 'translation';
 };
 
-// Helper to convert a string to Title Case.
-const toTitleCase = (str: string): string => {
+// Helper to format English title, preserving Scripture references and quoted verses.
+const formatEnglishTitle = (str: string): string => {
   if (!str) return '';
-  return str
+  const trimmed = str.trim();
+  if (/^["“«]/.test(trimmed) || /\d+:\d+/.test(trimmed)) {
+    return trimmed;
+  }
+  return trimmed
     .toLowerCase()
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 };
 
-export const exportToWord = (data: TranslationPair[]): void => {
-  if (!data || data.length === 0) {
+export const exportToWord = (rawPairs: TranslationPair[]): void => {
+  if (!rawPairs || rawPairs.length === 0) {
     console.error("No data available to export.");
     return;
   }
+
+  // Ensure verses are quoted across all three languages
+  const data = ensureVerseQuotesAndAlignment(rawPairs);
 
   const titlePair = data[0];
   const bodyPairs = data.length > 1 ? data.slice(1) : [];
@@ -44,44 +52,73 @@ export const exportToWord = (data: TranslationPair[]): void => {
   const FONT_SIZE_PT = 24;
   const FONT_SIZE_HALF_PT = FONT_SIZE_PT * 2;
   
-  const englishTitleText = toTitleCase(titlePair.english);
+  const englishTitleText = formatEnglishTitle(titlePair.english);
 
-  // Helper to create paragraphs. 
+  // Helper to create paragraphs with proper RTL punctuation alignment and right-aligned text
   const createParagraphsFromText = (text: string, isRtl: boolean, alignment: AlignmentType) => {
     const lines = text.split(/\r?\n/);
-    return lines.map(line => new Paragraph({
-      alignment: alignment,   // RIGHT for Arabic
-      children: [new TextRun({
-        text: line.trim(),
-        font: FONT_FAMILY,
-        size: FONT_SIZE_HALF_PT,
-        rtl: isRtl,           // This handles the character order correctly
-      })],
-    }));
+    return lines.map(line => {
+      let trimmed = line.trim();
+      if (isRtl && trimmed) {
+        if (/^["“«(\[]/.test(trimmed) && !trimmed.startsWith('\u200F')) {
+          trimmed = '\u200F' + trimmed;
+        }
+        if (/[.!?"'\u061F\u060C\u00BB\u201D\u2019\])}]$/.test(trimmed) && !trimmed.endsWith('\u200F')) {
+          trimmed = trimmed + '\u200F';
+        }
+      }
+      return new Paragraph({
+        alignment: alignment,
+        children: [new TextRun({
+          text: trimmed,
+          font: FONT_FAMILY,
+          size: FONT_SIZE_HALF_PT,
+          rightToLeft: isRtl,
+        })],
+      });
+    });
   };
 
   // --- Create Title Paragraphs ---
+  let arabicTitleText = titlePair.arabic.trim();
+  if (/^["“«(\[]/.test(arabicTitleText) && !arabicTitleText.startsWith('\u200F')) {
+    arabicTitleText = '\u200F' + arabicTitleText;
+  }
+  if (/[.!?"'\u061F\u060C\u00BB\u201D\u2019\])}]$/.test(arabicTitleText) && !arabicTitleText.endsWith('\u200F')) {
+    arabicTitleText = arabicTitleText + '\u200F';
+  }
+
   const arabicTitle = new Paragraph({
     alignment: AlignmentType.CENTER,
     children: [new TextRun({
-      text: titlePair.arabic,
+      text: arabicTitleText,
       font: FONT_FAMILY,
       size: FONT_SIZE_HALF_PT,
       bold: true,
       underline: { type: UnderlineType.SINGLE },
-      rtl: true,
+      rightToLeft: true,
     })],
   });
 
-  const transliteratedTitle = titlePair.transliteration ? new Paragraph({
+  let transliteratedTitleText = titlePair.transliteration ? titlePair.transliteration.trim() : '';
+  if (transliteratedTitleText) {
+    if (/^["“«(\[]/.test(transliteratedTitleText) && !transliteratedTitleText.startsWith('\u200F')) {
+      transliteratedTitleText = '\u200F' + transliteratedTitleText;
+    }
+    if (/[.!?"'\u061F\u060C\u00BB\u201D\u2019\])}]$/.test(transliteratedTitleText) && !transliteratedTitleText.endsWith('\u200F')) {
+      transliteratedTitleText = transliteratedTitleText + '\u200F';
+    }
+  }
+
+  const transliteratedTitle = transliteratedTitleText ? new Paragraph({
     alignment: AlignmentType.CENTER,
     children: [new TextRun({
-      text: titlePair.transliteration,
+      text: transliteratedTitleText,
       font: FONT_FAMILY,
       size: FONT_SIZE_HALF_PT,
       bold: true,
       underline: { type: UnderlineType.SINGLE },
-      rtl: true,
+      rightToLeft: true,
     })],
   }) : null;
 
