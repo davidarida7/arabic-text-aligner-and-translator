@@ -5,21 +5,28 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Arabic Text Aligner & Translator</title>
+    <meta
+      name="description"
+      content="An application that translates Arabic text to English, provides a phonetic transliteration of the English translation into Arabic script, displays them side-by-side in a 3-column aligned table, and exports the result to Microsoft Word."
+    />
+    <meta property="og:title" content="Arabic Text Aligner & Translator" />
+    <meta
+      property="og:description"
+      content="An application that translates Arabic text to English, provides a phonetic transliteration of the English translation into Arabic script, displays them side-by-side in a 3-column aligned table, and exports the result to Microsoft Word."
+    />
     <script src="https://cdn.tailwindcss.com"></script>
-  <script type="importmap">
+    <script type="importmap">
 {
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.1.1",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
     "react/": "https://aistudiocdn.com/react@^19.1.1/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.20.0",
     "docx": "https://esm.sh/docx@8.5.0",
     "file-saver": "https://esm.sh/file-saver@2.0.5"
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
-</head>
+  </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>

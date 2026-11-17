@@ -15,7 +15,7 @@ import {
 } from 'docx';
 import saveAs from 'file-saver';
 import type { TranslationPair } from '../types';
-import { ensureVerseQuotesAndAlignment } from './geminiService';
+import { ensureVerseQuotesAndAlignment } from './textFormatting';
 
 // Helper to sanitize filenames.
 const sanitizeFilename = (name: string): string => {

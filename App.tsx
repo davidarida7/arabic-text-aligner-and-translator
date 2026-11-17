@@ -1,8 +1,8 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { translateAndAlignText } from './services/geminiService';
+import { translateAndAlignText, TranslationError } from './services/geminiService';
 import { exportToWord } from './services/pdfService';
-import type { TranslationPair } from './types';
+import type { TranslationErrorDetails, TranslationPair } from './types';
 
 // --- Helper & UI Components ---
 
@@ -86,18 +86,23 @@ const TranslationTable: React.FC<TranslationTableProps> = ({ data }) => (
   </div>
 );
 
+interface ErrorState {
+  message: string;
+  details?: TranslationErrorDetails;
+}
+
 // --- Main App Component ---
 
 const App: React.FC = () => {
   const [arabicText, setArabicText] = useState<string>('');
   const [translationPairs, setTranslationPairs] = useState<TranslationPair[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorState | null>(null);
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
   const handleTranslate = useCallback(async () => {
     if (!arabicText.trim()) {
-      setError("Please enter some Arabic text to translate.");
+      setError({ message: "Please enter some Arabic text to translate." });
       return;
     }
     setIsLoading(true);
@@ -108,7 +113,13 @@ const App: React.FC = () => {
       const result = await translateAndAlignText(arabicText);
       setTranslationPairs(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unknown error occurred.");
+      if (err instanceof TranslationError) {
+        setError({ message: err.message, details: err.details });
+      } else {
+        setError({
+          message: err instanceof Error ? err.message : "An unknown error occurred.",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +127,7 @@ const App: React.FC = () => {
 
   const handleExport = () => {
     if (translationPairs.length === 0) {
-      setError("There is nothing to export.");
+      setError({ message: "There is nothing to export." });
       return;
     }
     setIsExporting(true);
@@ -124,7 +135,9 @@ const App: React.FC = () => {
     try {
       exportToWord(translationPairs);
     } catch (err) {
-       setError(err instanceof Error ? err.message : "An unknown error occurred during export.");
+      setError({
+        message: err instanceof Error ? err.message : "An unknown error occurred during export.",
+      });
     } finally {
       setTimeout(() => setIsExporting(false), 800);
     }
@@ -172,9 +185,68 @@ const App: React.FC = () => {
         {isLoading && <Loader />}
         
         {error && (
-          <div className="w-full max-w-4xl bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg my-4 animate-in fade-in" role="alert">
-            <strong className="font-bold">Notice: </strong>
-            <span className="block sm:inline">{error}</span>
+          <div className="w-full max-w-4xl bg-red-50 border border-red-200 text-red-800 px-6 py-4 rounded-lg my-4 animate-in fade-in space-y-2" role="alert">
+            <div>
+              <strong className="font-bold">Notice: </strong>
+              <span>{error.message}</span>
+            </div>
+
+            {error.details?.hint && (
+              <p className="text-sm text-red-700">{error.details.hint}</p>
+            )}
+
+            {error.details && (error.details.code || error.details.httpStatus || error.details.finishReason || error.details.blockReason || error.details.rawError || error.details.responsePreview) && (
+              <details className="pt-2 border-t border-red-200/80 text-xs text-red-900">
+                <summary className="cursor-pointer font-semibold select-none hover:text-red-950">
+                  Diagnostic context
+                  {error.details.code ? ` (${error.details.code})` : ''}
+                </summary>
+                <dl className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 bg-white/70 border border-red-200/70 rounded p-3 font-mono">
+                  {error.details.code && (
+                    <div>
+                      <dt className="inline font-semibold text-red-950">Reason: </dt>
+                      <dd className="inline">{error.details.code}</dd>
+                    </div>
+                  )}
+                  {error.details.httpStatus !== undefined && (
+                    <div>
+                      <dt className="inline font-semibold text-red-950">HTTP Status: </dt>
+                      <dd className="inline">{error.details.httpStatus}</dd>
+                    </div>
+                  )}
+                  {error.details.finishReason && (
+                    <div>
+                      <dt className="inline font-semibold text-red-950">Finish Reason: </dt>
+                      <dd className="inline">{error.details.finishReason}</dd>
+                    </div>
+                  )}
+                  {error.details.blockReason && (
+                    <div>
+                      <dt className="inline font-semibold text-red-950">Block Reason: </dt>
+                      <dd className="inline">{error.details.blockReason}</dd>
+                    </div>
+                  )}
+                  {error.details.model && (
+                    <div>
+                      <dt className="inline font-semibold text-red-950">Model: </dt>
+                      <dd className="inline">{error.details.model}</dd>
+                    </div>
+                  )}
+                  {error.details.rawError && (
+                    <div className="sm:col-span-2 break-words">
+                      <dt className="font-semibold text-red-950">Detail: </dt>
+                      <dd className="whitespace-pre-wrap">{error.details.rawError}</dd>
+                    </div>
+                  )}
+                  {error.details.responsePreview && (
+                    <div className="sm:col-span-2 break-words">
+                      <dt className="font-semibold text-red-950">Model Output Excerpt: </dt>
+                      <dd className="whitespace-pre-wrap bg-red-50/80 p-2 mt-1 rounded border border-red-100">{error.details.responsePreview}</dd>
+                    </div>
+                  )}
+                </dl>
+              </details>
+            )}
           </div>
         )}
 
